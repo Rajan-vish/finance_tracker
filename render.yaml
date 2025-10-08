@@ -1,0 +1,63 @@
+# Render manifest for the finance-tracker project
+#
+# This file describes two services to deploy on Render:
+# 1) A Node web service for the backend (build with TypeScript -> dist, start with node)
+# 2) A Static Site for the Vite-built client (publish client/dist)
+#
+# IMPORTANT:
+# - Do NOT check secrets into source control. Use the Render Dashboard to set the
+#   actual values for the sensitive env vars listed below (MONGO_URI, JWT_SECRET, etc.).
+# - After pushing this file to your repo, create services in Render and select "Use
+#   render.yaml" during creation (or create them manually using the commands below).
+
+services:
+  - type: web
+    name: finance-tracker-backend
+    env: node
+    plan: free
+    region: oregon
+    branch: main
+    # Build the backend (install deps, compile TS)
+    buildCommand: cd backend && npm ci && npm run build
+    # Start the compiled Node server
+    startCommand: cd backend && npm run start
+    disk: 512
+    # Non-secret defaults (you should set the secrets below in the Render dashboard)
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: BASE_PATH
+        value: /api
+      # The following are required and must be set in Dashboard (do not commit secrets):
+      # - MONGO_URI
+      # - JWT_SECRET
+      # - CLOUDINARY_CLOUD_NAME
+      # - CLOUDINARY_API_KEY
+      # - CLOUDINARY_API_SECRET
+      # - RESEND_API_KEY
+      # - RESEND_MAILER_SENDER
+      # - FRONTEND_ORIGIN (set to your client URL after client is deployed)
+
+  - type: static
+    name: finance-tracker-client
+    env: static
+    plan: free
+    region: oregon
+    branch: main
+    # Build the client using npm and publish the Vite output
+    buildCommand: cd client && npm ci && npm run build
+    publishPath: client/dist
+    # Set the client runtime build-time env so the build points to the backend API
+    # NOTE: Vite inlines env vars at build time. Set this to your backend URL including
+    # the BASE_PATH, for example: https://finance-tracker-backend.onrender.com/api
+    # You can set this value in the Render dashboard for this static site:
+    # - VITE_API_URL
+
+# Example usage (on Render dashboard):
+# 1) Push this repo to GitHub.
+# 2) In Render, create a new service and choose "Deploy from a Git repo" and
+#    select your repository. Choose "Use render.yaml" so Render picks these two
+#    services automatically. If Render prompts for env vars, set the secrets there.
+# 3) After the backend is created, copy its URL and set the static site's
+#    VITE_API_URL to <BACKEND_URL>/api and set the backend's FRONTEND_ORIGIN to
+#    your static site URL so CORS allows requests.
